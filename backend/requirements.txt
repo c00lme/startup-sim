@@ -1,0 +1,7 @@
+flask
+uagents
+google-generativeai
+reportlab
+weasyprint
+python-dotenv
+requests

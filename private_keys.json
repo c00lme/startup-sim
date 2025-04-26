@@ -1,0 +1,22 @@
+{
+    "PM-neutral": {
+        "identity_key": "4bf51c9f810bf65812f9930a37052e126c055cc7eedb7551172ac4184ed67f6e",
+        "wallet_key": "E8f7V/3zzHCj7WImYg5wCr0ENyQnDk7WH+zLBE3CFTI="
+    },
+    "CTO-cautious": {
+        "identity_key": "8037e96dac8797a8af24e1a22f6bcc0de4e2a6636ca12500e9b94ac8ef744a01",
+        "wallet_key": "PNhjKZw1fdpIHouy6UFbiBBGsEExqEh4Fte6TeQLYxg="
+    },
+    "Investor-skeptical": {
+        "identity_key": "b33b8f50227f5a1e538948ed8c624acc0d2317aaea4c3676e6a2c0387c383ed3",
+        "wallet_key": "ZMGIiS/1us9ng4ua89q6gkUvuP9lfKwvTLRDoqgLap0="
+    },
+    "Marketer-optimistic": {
+        "identity_key": "d4fe0c6ad164e237c91398d61cb262216c4c286f6e35e12594259a77b4054a6b",
+        "wallet_key": "Pab+85lQ4DazxKKn3gh+s8qdSez9GDRqlCp5Ldl1Mno="
+    },
+    "CEO-supportive": {
+        "identity_key": "14782bf58c39183b833a621ed56f65b3e7bff2863b05444a73c3462a07bd6172",
+        "wallet_key": "PuyG9Sx4GbTSFkQUXP6XNK5FnfSfl33zviWUjJ7ibpc="
+    }
+}
