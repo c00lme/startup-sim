@@ -1,10 +1,12 @@
-from uagents import Agent, Context, Protocol
+from uagents import Agent, Bureau, Context, Model, Protocol
+
 from roles import AGENT_ROLES
 import json
 import os
 import asyncio
 import requests
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -13,7 +15,7 @@ if not ASI1_API_KEY:
     raise RuntimeError("ASI1_API_KEY is required in your .env file!")
 
 class LLM:
-    def __init__(self, api_key, model="asi1-mini", temperature=0.7, max_tokens=500):
+    def __init__(self, api_key, model="asi1-mini", temperature=0.7, max_tokens=100):
         self.url = "https://api.asi1.ai/v1/chat/completions"
         self.headers = {
             'Content-Type': 'application/json',
@@ -43,91 +45,104 @@ class LLM:
 
 llm = LLM(api_key=ASI1_API_KEY)
 
-MSG_FILE = os.path.join(os.path.dirname(__file__), "messages.json")
-RESP_FILE = os.path.join(os.path.dirname(__file__), "responses.json")
+class Message(Model):
+    message: str
 
-# Assign a unique port and endpoint for each agent
-AGENT_PORTS = [8000 + i for i in range(len(AGENT_ROLES))]
-AGENT_ENDPOINTS = [f"http://127.0.0.1:{port}" for port in AGENT_PORTS]
+class KickoffRequest(Model):
+    message: str
 
-def make_agent(role, personality, all_agents, idx):
+class KickoffResponse(Model):
+    status: str
+    detail: str
+
+# Map agent addresses to names for logging/context
+addressToName = {}
+
+BACKEND_URL = "http://127.0.0.1:5000/api/agent-comment"
+
+def post_agent_comment(agent_name, sender, message):
+    payload = {
+        "agent": agent_name,
+        "sender": sender,
+        "message": message
+    }
+    try:
+        requests.post(BACKEND_URL, json=payload, timeout=5)
+    except Exception as e:
+        print(f"[WARN] Could not post agent comment: {e}")
+
+# Shared state for kickoff/interjection
+latest_user_message = {"text": None}
+
+# Agent creation using uAgents-native approach
+def make_agent(role, personality, idx):
     agent = Agent(
         name=f"{role}-{personality}",
-        port=AGENT_PORTS[idx],
-        endpoint=AGENT_ENDPOINTS[idx]
+        port=8000 + idx,
+        endpoint=f"http://127.0.0.1:{8000 + idx}",
+        seed=f"{role}-{personality}-seed"
     )
-    proto = Protocol(f"{role}_protocol")
 
-    @proto.on_message
-    async def on_message(ctx: Context, sender: str, msg: str):
-        # Use the LLM to generate a reply
-        try:
-            ai_reply = llm.send(msg)
-        except Exception as e:
-            ai_reply = f"[Error from LLM]: {e}"
-        # Write the reply to the responses file (append mode)
-        responses = []
-        if os.path.exists(RESP_FILE):
-            with open(RESP_FILE, "r") as f:
-                try:
-                    responses = json.load(f)
-                except Exception:
-                    responses = []
-        responses.append({"recipient": ctx.address, "from": sender, "reply": ai_reply})
-        with open(RESP_FILE, "w") as f:
-            json.dump(responses, f)
-        await ctx.send(sender, ai_reply)
+    @agent.on_event("startup")
+    async def on_startup(ctx: Context):
+        addressToName[ctx.agent.address] = ctx.agent.name
+        # Optionally send a greeting to the next agent for auto-chain
 
-        # Chain: send a message to the next agent
-        idx = [a.name for a in all_agents].index(agent.name)
-        next_idx = (idx + 1) % len(all_agents)
-        next_agent = all_agents[next_idx]
-        # Only send if not looping back to sender
+    @agent.on_message(model=Message)
+    async def handle_message(ctx: Context, sender: str, msg: Message):
+        sender_name = addressToName.get(sender, sender)
+        ctx.logger.info(f"received: '{msg.message}' from {sender_name}")
+        llmString = f"{sender_name} says: {msg.message}. Respond as {ctx.agent.name}"
+        llm_response = await asyncio.to_thread(llm.send, llmString)
+
+        await ctx.send(sender, Message(message=llm_response))
+        # Post every agent reply to the backend
+        post_agent_comment(ctx.agent.name, sender_name, llm_response)
+        # Optionally, forward to next agent for roundtable
+        idx = [a.name for a in agents].index(agent.name)
+        next_idx = (idx + 1) % len(agents)
+        next_agent = agents[next_idx]
         if next_agent.name != sender:
-            await ctx.send(next_agent.address, f"Follow-up from {role}")
+            
+            await ctx.send(next_agent.address, Message(message=f"Follow-up from {agent.name}: {llm_response}"))
+            post_agent_comment(ctx.agent.name, next_agent.name, f"Follow-up from {agent.name}: {llm_response}")
 
-    agent.include(proto)
+    # Only add the kickoff endpoint to the first agent (PM-neutral)
+    if role == "PM" and personality == "neutral":
+        @agent.on_rest_post("/start_roundtable", KickoffRequest, KickoffResponse)
+        async def handle_kickoff(ctx: Context, req: KickoffRequest) -> KickoffResponse:
+            latest_user_message["text"] = req.message
+            ctx.logger.info(f"User kickoff/interject: {req.message}")
+            # Start the roundtable
+            await start_roundtable(ctx, req.message)
+            return KickoffResponse(status="ok", detail="Roundtable started")
+
+        async def start_roundtable(ctx: Context, kickoff_message: str):
+            # Start with the kickoff message and pass through all agents
+            msg = kickoff_message
+            sender_name = "User"
+            for i, ag in enumerate(agents):
+                if ag.name == ctx.agent.name:
+                    # This agent is the starter (PM-neutral)
+                    pass
+                else:
+                    # Wait 5 second between each agent
+                    print("FFDGFDGF")
+                llmString = f"{sender_name} says: {msg}. Respond as {ag.name}"
+                # await asyncio.sleep(5)
+                llm_response = await asyncio.to_thread(llm.send, llmString)
+                post_agent_comment(ag.name, sender_name, llm_response)
+                sender_name = ag.name
+                msg = llm_response
+
     return agent
 
-# Create all agents and pass the full list for roundtable logic
-agents = [None] * len(AGENT_ROLES)
-for i, cfg in enumerate(AGENT_ROLES):
-    agents[i] = make_agent(cfg["role"], cfg["default_personality"], agents, i)
+# Create all agents
+agents = [make_agent(cfg["role"], cfg["default_personality"], i) for i, cfg in enumerate(AGENT_ROLES)]
 
-# Poll for new messages from the file and deliver them to the correct agent
-async def poll_messages():
-    last_seen = 0
-    while True:
-        if os.path.exists(MSG_FILE):
-            with open(MSG_FILE, "r") as f:
-                try:
-                    messages = json.load(f)
-                except Exception:
-                    messages = []
-            # Only process new messages
-            for msg in messages[last_seen:]:
-                # Find agent by name
-                for agent in agents:
-                    if agent.name == msg["recipient"]:
-                        # Simulate receiving a message by calling the protocol handler directly
-                        # Use the protocol's on_message handler
-                        for proto in agent.protocols.values():
-                            # Find the on_message handler
-                            if hasattr(proto, "_unsigned_message_handlers"):
-                                for cb in proto._unsigned_message_handlers.values():
-                                    # Simulate context and call handler
-                                    class DummyCtx:
-                                        address = agent.name
-                                    await cb(DummyCtx(), msg["sender"], msg["text"])
-            last_seen = len(messages)
-        await asyncio.sleep(1)
+bureau = Bureau()
+for agent in agents:
+    bureau.add(agent)
 
 if __name__ == "__main__":
-    async def main():
-        # Start all agents asynchronously
-        for agent in agents:
-            asyncio.create_task(agent.run_async())
-        # Poll for new messages and dispatch
-        await poll_messages()
-
-    asyncio.run(main())
+    bureau.run()

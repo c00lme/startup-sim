@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ChatWindow from '../components/ChatWindow';
 import Controls from '../components/Controls';
-import { sendAgentMessage, completeSession } from '../api';
+import { sendAgentMessage, completeSession, fetchConversationFeed, startRoundtable } from '../api';
 
 export default function Simulation({ session, onOutcome }) {
   const [messages, setMessages] = useState([
@@ -11,23 +11,26 @@ export default function Simulation({ session, onOutcome }) {
   const [inputLoading, setInputLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const feed = await fetchConversationFeed();
+        setMessages(feed.comments.map(c => ({ sender: c.agent, text: c.message })));
+      } catch (e) {
+        // ignore fetch errors
+      }
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!session) return <div className="p-8">No session found.</div>;
 
   const handleInject = async input => {
     setInputLoading(true);
     setError('');
     try {
-      // Append user message
       setMessages(msgs => [...msgs, { sender: 'User', text: input }]);
-      // Send to first agent in the session
-      const recipient = session.agents[0].name;
-      const res = await sendAgentMessage({ sender: 'User', recipient, text: input });
-      // Append agent replies
-      const replies = res.replies || [];
-      setMessages(msgs => [
-        ...msgs,
-        ...replies.map(r => ({ sender: r.from, text: r.reply }))
-      ]);
+      await startRoundtable(input); // Use new roundtable/interject API
     } catch (e) {
       setError('Server error.');
     } finally {

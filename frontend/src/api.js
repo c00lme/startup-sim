@@ -27,3 +27,19 @@ export async function completeSession({ sessionId }) {
   });
   return res.json();
 }
+
+export async function fetchConversationFeed() {
+  const res = await fetch(`${API_BASE}/api/conversation-feed`);
+  if (!res.ok) throw new Error('Failed to fetch conversation feed');
+  return res.json();
+}
+
+export async function startRoundtable(message) {
+  const res = await fetch(`http://127.0.0.1:8000/start_roundtable`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: message })
+  });
+  if (!res.ok) throw new Error('Failed to start roundtable');
+  return res.json();
+}

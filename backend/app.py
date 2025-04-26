@@ -2,9 +2,11 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-from agents.agent_factory import create_agents_for_session, send_agent_message, get_agent_responses
+from agents.agent_factory import create_agents_for_session
 from summarizer.gemini import summarize_conversation
 from report.pdf_generator import generate_pdf_report
+import requests
+from threading import Lock
 
 load_dotenv()
 
@@ -12,7 +14,12 @@ UAGENTS_API_KEY = os.getenv('UAGENTS_API_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 app = Flask(__name__)
-CORS(app)
+# Allow all origins and all methods/headers for CORS
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# --- AGENT COMMENT FEED ---
+agent_comments = []
+agent_comments_lock = Lock()
 
 @app.route('/')
 def index():
@@ -46,13 +53,61 @@ def agent_message():
     if not recipient or not text:
         print("[DEBUG] Missing required fields in agent_message")
         return jsonify({'error': 'recipient and text required', 'payload': data}), 400
-    send_agent_message(sender, recipient, text)
-    responses = get_agent_responses()
-    # Clear responses file for next call
-    resp_file = os.path.join(os.path.dirname(__file__), 'agents', 'responses.json')
-    with open(resp_file, 'w') as f:
-        f.write('[]')
-    return jsonify({'replies': responses})
+
+    # Map agent names to ports (must match run_agents.py logic)
+    agent_ports = {
+        'PM-neutral': 8000,
+        'CTO-cautious': 8001,
+        'Investor-skeptical': 8002,
+        'Marketer-optimistic': 8003,
+        'CEO-supportive': 8004,
+    }
+
+    # Start the roundtable by sending to the first agent
+    roundtable = []
+    current_sender = sender
+    current_message = text
+    visited = set()
+    agent_order = [recipient]
+    # Build order: recipient, then round robin through all agents (excluding recipient)
+    for name in agent_ports:
+        if name != recipient:
+            agent_order.append(name)
+
+    for agent_name in agent_order:
+        port = agent_ports.get(agent_name)
+        if port is None:
+            continue
+        endpoint = f'http://127.0.0.1:{port}/submit'
+        payload = {"message": current_message}
+        try:
+            resp = requests.post(endpoint, json=payload, timeout=30)
+            resp.raise_for_status()
+            agent_reply = resp.json().get('message', '')
+            roundtable.append({'from': agent_name, 'reply': agent_reply})
+            # The next agent gets the previous agent's reply
+            current_message = agent_reply
+            current_sender = agent_name
+        except Exception as e:
+            print(f"[DEBUG] Error contacting agent {agent_name}: {e}")
+            roundtable.append({'from': agent_name, 'reply': f'[Error: {e}]'})
+            # Stop the roundtable if an agent fails
+            break
+
+    return jsonify({'replies': roundtable})
+
+@app.route('/api/agent-comment', methods=['POST'])
+def agent_comment():
+    data = request.json
+    # Optionally add a timestamp here
+    with agent_comments_lock:
+        agent_comments.append(data)
+    return jsonify({"status": "ok"})
+
+@app.route('/api/conversation-feed', methods=['GET'])
+def conversation_feed():
+    with agent_comments_lock:
+        return jsonify({"comments": agent_comments})
 
 @app.route('/api/complete-session', methods=['POST'])
 def complete_session():
