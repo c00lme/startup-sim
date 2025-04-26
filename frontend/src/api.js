@@ -19,11 +19,11 @@ export async function sendAgentMessage({ sender, recipient, text }) {
   return res.json();
 }
 
-export async function completeSession({ sessionId }) {
+export async function completeSession({ sessionId, messages }) {
   const res = await fetch(`${API_BASE}/api/complete-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: sessionId })
+    body: JSON.stringify({ session_id: sessionId, messages })
   });
   return res.json();
 }
@@ -51,5 +51,50 @@ export async function fetchPitchDeck(messages) {
     body: JSON.stringify({ messages })
   });
   if (!res.ok) throw new Error('Failed to fetch pitch deck');
+  return res.json();
+}
+
+export async function simulateConflict({ sessionId, idea }) {
+  const res = await fetch(`${API_BASE}/api/simulate-conflict`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, idea })
+  });
+  return res.json();
+}
+
+export async function resolveConflict({ sessionId, conflictType, winner }) {
+  const res = await fetch(`${API_BASE}/api/resolve-conflict`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, conflict_type: conflictType, winner })
+  });
+  return res.json();
+}
+
+export async function fetchMoodboard({ idea, messages }) {
+  const res = await fetch(`${API_BASE}/api/brand-moodboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idea, messages })
+  });
+  return res.json();
+}
+
+export async function fetchInvestorQA(messages) {
+  const res = await fetch(`${API_BASE}/api/investor-qa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages })
+  });
+  return res.json();
+}
+
+export async function fetchRiskMap(messages) {
+  const res = await fetch(`${API_BASE}/api/risk-map`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages })
+  });
   return res.json();
 }
