@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AgentRoleConfig from '../components/AgentRoleConfig';
-import { startSession } from '../api';
+import { startSession, startRoundtable } from '../api';
 
 const realismLevels = [
   { label: 'Harsh', value: 'harsh' },
@@ -28,6 +28,8 @@ export default function IdeaSetup({ onStart }) {
       if (res.session_id) {
         // Use agents returned by backend (with names)
         onStart({ idea, realism, agents: res.agents, sessionId: res.session_id });
+        // Immediately kick off the roundtable with the startup idea
+        await startRoundtable(idea);
       } else {
         setError('Failed to start session.');
       }

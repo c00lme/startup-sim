@@ -3,7 +3,7 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from agents.agent_factory import create_agents_for_session
-from summarizer.gemini import summarize_conversation
+from summarizer.gemini import summarize_conversation, create_pitch_deck
 from report.pdf_generator import generate_pdf_report
 import requests
 from threading import Lock
@@ -122,6 +122,16 @@ def complete_session():
     pdf_path = generate_pdf_report(summary)
     # For demo, serve the PDF directly (in production, use secure static hosting)
     return jsonify({'report_url': '/api/download-report', 'summary': summary})
+
+@app.route('/api/pitch-deck', methods=['POST'])
+def pitch_deck():
+    data = request.json
+    messages = data.get('messages', [])
+    try:
+        deck = create_pitch_deck(messages)
+        return jsonify({'pitch_deck': deck})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/download-report', methods=['GET'])
 def download_report():

@@ -53,18 +53,45 @@ export default function Simulation({ session, onOutcome }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Agent Conversation</h2>
-      <ChatWindow messages={messages} />
-      <Controls
-        paused={paused}
-        setPaused={setPaused}
-        onInject={handleInject}
-        onClarify={handleClarify}
-        onEnd={handleEnd}
-      />
-      {inputLoading && <div className="mt-2 text-blue-600">Processing...</div>}
-      {error && <div className="mt-2 text-red-600">{error}</div>}
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-200 via-indigo-300 to-purple-200 p-6 sm:p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="text-center mb-12 animate-fade-in">
+          <h2 className="text-5xl font-extrabold text-blue-900 mb-3 tracking-tight">
+            Startup Simulation
+          </h2>
+          <p className="text-purple-700 text-xl">AI Agent Roundtable</p>
+        </div>
+        
+        <div className="bg-white/60 backdrop-blur-lg rounded-xl shadow-lg overflow-hidden border border-purple-200">
+          <div className="p-5 bg-gradient-to-r from-blue-100 to-purple-100 border-b border-purple-200">
+            <h3 className="text-2xl font-bold text-indigo-800">Agent Conversation</h3>
+          </div>
+          <div className="h-[450px] p-6 overflow-y-auto bg-white/70">
+            <ChatWindow messages={messages} />
+          </div>
+        </div>
+        
+        <div className="bg-white/60 backdrop-blur-lg rounded-xl shadow-lg overflow-hidden border border-purple-200 p-6">
+          <Controls
+            paused={paused}
+            setPaused={setPaused}
+            onInject={handleInject}
+            onClarify={handleClarify}
+            onEnd={handleEnd}
+          />
+          
+          {inputLoading && (
+            <div className="flex items-center justify-center mt-4 text-indigo-700">
+              <svg className="animate-spin mr-3 h-5 w-5 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing
+            </div>
+          )}
+          {error && <div className="text-center text-red-500 animate-pulse mt-4">{error}</div>}
+        </div>
+      </div>
     </div>
   );
 }

@@ -103,7 +103,6 @@ def make_agent(role, personality, idx):
         next_idx = (idx + 1) % len(agents)
         next_agent = agents[next_idx]
         if next_agent.name != sender:
-            
             await ctx.send(next_agent.address, Message(message=f"Follow-up from {agent.name}: {llm_response}"))
             post_agent_comment(ctx.agent.name, next_agent.name, f"Follow-up from {agent.name}: {llm_response}")
 

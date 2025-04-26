@@ -43,3 +43,13 @@ export async function startRoundtable(message) {
   if (!res.ok) throw new Error('Failed to start roundtable');
   return res.json();
 }
+
+export async function fetchPitchDeck(messages) {
+  const res = await fetch(`${API_BASE}/api/pitch-deck`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages })
+  });
+  if (!res.ok) throw new Error('Failed to fetch pitch deck');
+  return res.json();
+}
