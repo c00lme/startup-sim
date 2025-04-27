@@ -99,6 +99,7 @@ def agent_message():
 def agent_comment():
     data = request.json
     # Optionally add a timestamp here
+    print("just posted",data)
     with agent_comments_lock:
         agent_comments.append(data)
     return jsonify({"status": "ok"})

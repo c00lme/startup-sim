@@ -80,7 +80,9 @@ def make_agent(role, personality, idx):
         name=f"{role}-{personality}",
         port=8000 + idx,
         endpoint=f"http://127.0.0.1:{8000 + idx}",
-        seed=f"{role}-{personality}-seed"
+        seed=f"{role}-seed",
+        mailbox=True,
+        readme_path="pmreadme.md"
     )
 
     @agent.on_event("startup")
@@ -139,9 +141,12 @@ def make_agent(role, personality, idx):
 # Create all agents
 agents = [make_agent(cfg["role"], cfg["default_personality"], i) for i, cfg in enumerate(AGENT_ROLES)]
 
-bureau = Bureau()
-for agent in agents:
-    bureau.add(agent)
+# bureau = Bureau()
+# for agent in agents:
+#     bureau.add(agent)
+
+async def run_agents():
+    await asyncio.gather(*[agent.run_async() for agent in agents])
 
 if __name__ == "__main__":
-    bureau.run()
+    asyncio.run(run_agents())
