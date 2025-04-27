@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import ReportSummary from '../components/ReportSummary';
 import PitchDeckViewer from '../components/PitchDeckViewer';
 import ConflictDialog from '../components/ConflictDialog';
-import MoodboardDialog from '../components/MoodboardDialog';
 import InvestorQADialog from '../components/InvestorQADialog';
 import RiskMapDialog from '../components/RiskMapDialog';
 import AgentProfileCard from '../components/AgentProfileCard';
 import Confetti from '../components/Confetti';
-import { fetchPitchDeck, simulateConflict, resolveConflict, fetchMoodboard, fetchInvestorQA, fetchRiskMap } from '../api';
+import { fetchPitchDeck, simulateConflict, resolveConflict, fetchInvestorQA, fetchRiskMap } from '../api';
 
 export default function Outcome({ report, onRestart }) {
   const [pitchDeck, setPitchDeck] = useState(null);
@@ -16,8 +15,6 @@ export default function Outcome({ report, onRestart }) {
   const [conflict, setConflict] = useState(null);
   const [conflictLoading, setConflictLoading] = useState(false);
   const [conflictResult, setConflictResult] = useState(null);
-  const [moodboard, setMoodboard] = useState(null);
-  const [moodboardLoading, setMoodboardLoading] = useState(false);
   const [qa, setQA] = useState(null);
   const [qaLoading, setQALoading] = useState(false);
   const [riskmap, setRiskmap] = useState(null);
@@ -63,18 +60,6 @@ export default function Outcome({ report, onRestart }) {
       setError('Could not resolve conflict.');
     }
     setConflictLoading(false);
-  };
-
-  const handleMoodboard = async () => {
-    setMoodboardLoading(true);
-    setError('');
-    try {
-      const res = await fetchMoodboard({ idea, messages });
-      setMoodboard(res.moodboard);
-    } catch (e) {
-      setError('Could not generate moodboard.');
-    }
-    setMoodboardLoading(false);
   };
 
   const handleQA = async () => {
@@ -193,25 +178,6 @@ export default function Outcome({ report, onRestart }) {
             </button>
             
             <button
-              className="group relative flex items-center justify-center bg-white border border-pink-200 h-20 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-              onClick={handleMoodboard}
-              disabled={moodboardLoading}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-center gap-3 relative z-10 px-4 py-3 w-full h-full group-hover:text-white transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-pink-500 group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="font-medium text-gray-800 group-hover:text-white transition-colors duration-300">
-                  {moodboardLoading ? 'Generating...' : 'Brand Moodboard'}
-                </span>
-              </div>
-            </button>
-          </div>
-          
-          {/* Second row of buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
               className="group relative flex items-center justify-center bg-white border border-orange-200 h-20 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
               onClick={handleQA}
               disabled={qaLoading}
@@ -226,7 +192,10 @@ export default function Outcome({ report, onRestart }) {
                 </span>
               </div>
             </button>
-            
+          </div>
+          
+          {/* Second row of buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               className="group relative flex items-center justify-center bg-white border border-green-200 h-20 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
               onClick={handleRiskmap}
@@ -319,7 +288,6 @@ export default function Outcome({ report, onRestart }) {
         )}
         
         {/* Dialogs */}
-        {moodboard && <MoodboardDialog moodboard={moodboard} onClose={() => setMoodboard(null)} />}
         {qa && <InvestorQADialog qa={qa} onClose={() => setQA(null)} />}
         {riskmap && <RiskMapDialog riskmap={riskmap} onClose={() => setRiskmap(null)} />}
       </div>

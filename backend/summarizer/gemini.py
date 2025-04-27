@@ -107,62 +107,6 @@ def create_pitch_deck(messages):
         raise
 
 
-def create_brand_moodboard(idea, messages):
-    """
-    Generate a brand moodboard for a startup idea, including color palette,
-    logo style, and taglines
-    """
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY not set!")
-    
-    prompt = f"""Create a startup brand moodboard for this idea: "{idea}"
-
-Based on the conversation between the agents, generate:
-
-1. 🎨 BRAND COLORS:
-   - Suggest a primary, secondary, and accent color palette (with hex codes)
-   - Briefly explain why these colors fit the brand personality
-
-2. 🖼️ LOGO STYLE DIRECTION:
-   - Recommend a logo style (minimalist, bold, playful, etc.)
-   - Describe 2-3 key visual elements that would work well
-   - Suggest an appropriate icon or symbol that represents the concept
-
-3. 📢 POTENTIAL TAGLINES:
-   - Create 3 alternative taglines that capture the value proposition
-   - Each should be concise (5-8 words maximum)
-   - Appeal to the target market identified in the conversation
-
-4. 📝 BRAND VOICE:
-   - Suggest the overall tone: formal/casual, technical/accessible, etc.
-   - List 3-5 adjectives that should describe all communications
-
-FORMAT THE RESPONSE WITH CLEAR HEADINGS, COLOR PREVIEWS, AND CONCISE DESCRIPTIONS.
-FOCUS ON CREATING A COHESIVE BRAND IDENTITY THAT MATCHES THE STARTUP'S VISION AND TARGET MARKET.
-
-Conversation context:
-{"\n".join([f"{m['sender']}: {m['text']}" for m in messages])}
-"""
-    
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
-    
-    try:
-        response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
-        response.raise_for_status()
-        data = response.json()
-        print("[DEBUG] Gemini API response for moodboard:", data)
-        return data['candidates'][0]['content']['parts'][0]['text'] if data.get('candidates') else "No moodboard could be generated."
-    except Exception as e:
-        import traceback
-        print("[ERROR] Gemini API call for moodboard failed:", traceback.format_exc())
-        raise
-
-
 def simulate_investor_qa(messages):
     """
     Simulate a 3-question mock investor Q&A based on the startup plan. Let agents answer as themselves.

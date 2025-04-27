@@ -3,7 +3,7 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from agents.agent_factory import create_agents_for_session
-from summarizer.gemini import summarize_conversation, create_pitch_deck, create_brand_moodboard, simulate_investor_qa, generate_risk_map
+from summarizer.gemini import summarize_conversation, create_pitch_deck, simulate_investor_qa, generate_risk_map
 from report.pdf_generator import generate_pdf_report
 import requests
 from threading import Lock
@@ -130,19 +130,6 @@ def pitch_deck():
     try:
         deck = create_pitch_deck(messages)
         return jsonify({'pitch_deck': deck})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/brand-moodboard', methods=['POST'])
-def brand_moodboard():
-    """Generate a brand moodboard for the startup idea"""
-    data = request.json
-    idea = data.get('idea', '')
-    messages = data.get('messages', [])
-    
-    try:
-        moodboard = create_brand_moodboard(idea, messages)
-        return jsonify({'moodboard': moodboard})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
