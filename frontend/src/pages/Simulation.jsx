@@ -11,6 +11,7 @@ export default function Simulation({ session, onOutcome }) {
   const [inputLoading, setInputLoading] = useState(false);
   const [error, setError] = useState('');
 
+
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -25,12 +26,25 @@ export default function Simulation({ session, onOutcome }) {
 
   if (!session) return <div className="p-8">No session found.</div>;
 
+  if (!session) return <div className="p-8 text-center text-gray-600">No session found.</div>;
+
+
   const handleInject = async input => {
     setInputLoading(true);
     setError('');
     try {
       setMessages(msgs => [...msgs, { sender: 'User', text: input }]);
+
       await startRoundtable(input); // Use new roundtable/interject API
+
+      const recipient = session.agents[0].name;
+      const res = await sendAgentMessage({ sender: 'User', recipient, text: input });
+      const replies = res.replies || [];
+      setMessages(msgs => [
+        ...msgs,
+        ...replies.map(r => ({ sender: r.from, text: r.reply }))
+      ]);
+
     } catch (e) {
       setError('Server error.');
     } finally {
@@ -53,18 +67,22 @@ export default function Simulation({ session, onOutcome }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Agent Conversation</h2>
-      <ChatWindow messages={messages} />
-      <Controls
-        paused={paused}
-        setPaused={setPaused}
-        onInject={handleInject}
-        onClarify={handleClarify}
-        onEnd={handleEnd}
-      />
-      {inputLoading && <div className="mt-2 text-blue-600">Processing...</div>}
-      {error && <div className="mt-2 text-red-600">{error}</div>}
+    <div className="max-w-4xl mx-auto mt-14 p-10 bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl">
+      <h2 className="text-4xl font-extrabold mb-8 text-center text-gray-800">Agent Conversation</h2>
+      <div className="mb-8">
+        <ChatWindow messages={messages} />
+      </div>
+      <div className="mb-8">
+        <Controls
+          paused={paused}
+          setPaused={setPaused}
+          onInject={handleInject}
+          onClarify={handleClarify}
+          onEnd={handleEnd}
+        />
+      </div>
+      {inputLoading && <div className="mt-4 text-center text-blue-500 font-semibold animate-pulse">Processing...</div>}
+      {error && <div className="mt-4 text-center text-red-600 font-medium">{error}</div>}
     </div>
   );
 }
