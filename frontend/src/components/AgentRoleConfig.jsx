@@ -7,6 +7,7 @@ const personalities = [
   "optimistic",
   "skeptical",
   "supportive",
+  "clueless",
 ];
 
 export default function AgentRoleConfig({ agents, setAgents }) {

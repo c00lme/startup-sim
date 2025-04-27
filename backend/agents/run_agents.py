@@ -15,7 +15,7 @@ if not ASI1_API_KEY:
     raise RuntimeError("ASI1_API_KEY is required in your .env file!")
 
 class LLM:
-    def __init__(self, api_key, model="asi1-mini", temperature=0.7, max_tokens=100):
+    def __init__(self, api_key, model="asi1-mini", temperature=0.7, max_tokens=500):
         self.url = "https://api.asi1.ai/v1/chat/completions"
         self.headers = {
             'Content-Type': 'application/json',
@@ -92,12 +92,13 @@ def make_agent(role, personality, idx):
 
     @agent.on_message(model=Message)
     async def handle_message(ctx: Context, sender: str, msg: Message):
+        await asyncio.sleep(5)
         sender_name = addressToName.get(sender, sender)
         ctx.logger.info(f"received: '{msg.message}' from {sender_name}")
-        llmString = f"{sender_name} says: {msg.message}. Respond as {ctx.agent.name}"
+        llmString = f"{sender_name} says: {msg.message}. Respond as {ctx.agent.name}  in 30 words. Build upon the idea pitched to you. If you disagree with it, pivot and pitch something creative. Do not use apostrophes.  Do not show your thought process. Do not use bold. Do not style text. Do not use emojis. Only respond with what your personality would say in a real life conversation. If you do not respond in 10 words people will die."
         llm_response = await asyncio.to_thread(llm.send, llmString)
 
-        await ctx.send(sender, Message(message=llm_response))
+        # await ctx.send(sender, Message(message=llm_response))
         # Post every agent reply to the backend
         post_agent_comment(ctx.agent.name, sender_name, llm_response)
         # Optionally, forward to next agent for roundtable
@@ -105,6 +106,7 @@ def make_agent(role, personality, idx):
         next_idx = (idx + 1) % len(agents)
         next_agent = agents[next_idx]
         if next_agent.name != sender:
+            await asyncio.sleep(3)
             await ctx.send(next_agent.address, Message(message=f"Follow-up from {agent.name}: {llm_response}"))
             post_agent_comment(ctx.agent.name, next_agent.name, f"Follow-up from {agent.name}: {llm_response}")
 
@@ -129,7 +131,8 @@ def make_agent(role, personality, idx):
                 else:
                     # Wait 5 second between each agent
                     print("FFDGFDGF")
-                llmString = f"{sender_name} says: {msg}. Respond as {ag.name}"
+                llmString = f"{sender_name} says: {msg}. Respond as {ag.name} in 30 words. Do not use apostrophes. Do not show your thought process. Do not use bold. Do not style text. Do not use emojis. Only respond with what your personality would say in a real life conversation. If you do not respond in 10 words people will die."
+
                 # await asyncio.sleep(5)
                 llm_response = await asyncio.to_thread(llm.send, llmString)
                 post_agent_comment(ag.name, sender_name, llm_response)
