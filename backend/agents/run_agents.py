@@ -43,7 +43,6 @@ class LLM:
         else:
             raise Exception(f"Request failed: {response.status_code} - {response.text}")
 
-llm = LLM(api_key=ASI1_API_KEY)
 
 class Message(Model):
     message: str
@@ -82,19 +81,28 @@ def make_agent(role, personality, idx):
         endpoint=f"http://127.0.0.1:{8000 + idx}",
         seed=f"{role}-seed",
         mailbox=True,
-        readme_path="pmreadme.md"
     )
 
+    llm = LLM(api_key=ASI1_API_KEY)
+
+    async def initialize_llm():
+        prompt = """
+        You will be roleplaying as multiple personalities. The user will tell you which one to use. Respond
+        in only 5 WORDS. DO NOT USE AESTRIKS, BOLD, EMOJIS, OR TEXT STYLING. This is absolutely crucial.
+        IF YOU DO NOT FOLLOW THESE GUIDELINES, PEOPLE WILL DIE. It is up to you.
+        """
+        llm_response = await asyncio.to_thread(llm.send, prompt)
+        print("LLM Initialized")
     @agent.on_event("startup")
     async def on_startup(ctx: Context):
         addressToName[ctx.agent.address] = ctx.agent.name
-        # Optionally send a greeting to the next agent for auto-chain
+        asyncio.run(initialize_llm())
 
     @agent.on_message(model=Message)
     async def handle_message(ctx: Context, sender: str, msg: Message):
         sender_name = addressToName.get(sender, sender)
         ctx.logger.info(f"received: '{msg.message}' from {sender_name}")
-        llmString = f"{sender_name} says: {msg.message}. Respond as {ctx.agent.name}"
+        llmString = f"{sender_name} says: {msg.message}. Respond as {ctx.agent.name}."
         llm_response = await asyncio.to_thread(llm.send, llmString)
 
         await ctx.send(sender, Message(message=llm_response))
@@ -123,12 +131,6 @@ def make_agent(role, personality, idx):
             msg = kickoff_message
             sender_name = "User"
             for i, ag in enumerate(agents):
-                if ag.name == ctx.agent.name:
-                    # This agent is the starter (PM-neutral)
-                    pass
-                else:
-                    # Wait 5 second between each agent
-                    print("FFDGFDGF")
                 llmString = f"{sender_name} says: {msg}. Respond as {ag.name}"
                 # await asyncio.sleep(5)
                 llm_response = await asyncio.to_thread(llm.send, llmString)
