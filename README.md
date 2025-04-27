@@ -5,6 +5,7 @@ The unpaid intern, CTO, PM, investor, and marketer discussing in insighful conve
 
 # Setup
 This is assuming you are in the root directory
+
 cd frontend
 npm install
 npm start
